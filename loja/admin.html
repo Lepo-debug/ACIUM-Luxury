@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Pro | ACIUM Luxury Management</title>
+    <link rel="icon" type="image/png" href="img/icon.png">
+    <link rel="stylesheet" href="css/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <style>
+        :root { --gold: #d4af37; --dark: #1a1a1a; --light-bg: #f4f7f6; --accent: #2c3e50; }
+        body { background-color: var(--light-bg); display: flex; min-height: 100vh; font-family: 'Inter', sans-serif; color: var(--accent); overflow-x: hidden; }
+        
+        /* Sidebar Estilizada */
+        .sidebar { width: 280px; background: var(--dark); color: white; padding: 25px; flex-shrink: 0; position: sticky; top: 0; height: 100vh; z-index: 1000; box-shadow: 4px 0 10px rgba(0,0,0,0.1); }
+        .sidebar h2 { font-size: 1.5rem; letter-spacing: 2px; color: var(--gold); }
+        
+        .main-content { flex-grow: 1; padding: 30px; width: 100%; }
+        .card-custom { background: white; border-radius: 15px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.05); padding: 25px; margin-bottom: 25px; }
+        
+        .nav-pills .nav-link { color: #a0a0a0; font-weight: 500; padding: 12px 20px; margin-bottom: 8px; border-radius: 10px; border: none; width: 100%; text-align: left; transition: 0.3s; }
+        .nav-pills .nav-link.active { background: var(--gold) !important; color: black !important; font-weight: bold; }
+        
+        .stat-card { background: white; border-radius: 12px; padding: 20px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); height: 100%; }
+        .icon-box { width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 10px; }
+        
+        .variant-input-group { background: #fdfaf3; border: 1px solid #f1ece0; padding: 15px; border-radius: 12px; height: 100%; }
+
+        #loadingOverlay { position: fixed; inset: 0; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .log-item { border-bottom: 1px solid #eee; padding: 10px 0; font-size: 0.85rem; }
+        .log-item b { color: var(--gold); }
+
+        .table img { object-fit: cover; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+
+<div id="loadingOverlay">
+    <div class="spinner-grow text-warning mb-3"></div>
+    <span class="fw-bold text-uppercase" style="letter-spacing: 2px;">Sincronizando com a Cloud...</span>
+</div>
+
+<div class="sidebar d-flex flex-column">
+    <div class="mb-5 text-center">
+        <h2 class="fw-bold m-0 text-uppercase">ACIUM</h2>
+        <p class="small opacity-50 m-0">Luxury Management</p>
+    </div>
+
+    <div class="nav flex-column nav-pills mb-auto" id="v-pills-tab" role="tablist">
+        <button class="nav-link active" id="tab-dash-btn" data-bs-toggle="pill" data-bs-target="#content-dash" type="button" role="tab">
+            <i class="bi bi-speedometer2 me-2"></i> Dashboard
+        </button>
+        <button class="nav-link" id="tab-inventario-btn" data-bs-toggle="pill" data-bs-target="#content-inventario" type="button" role="tab">
+            <i class="bi bi-gem me-2"></i> Inventário
+        </button>
+        <button class="nav-link" id="tab-equipa-btn" data-bs-toggle="pill" data-bs-target="#content-equipa" type="button" role="tab">
+            <i class="bi bi-people me-2"></i> Gestão de Staff
+        </button>
+    </div>
+
+    <div class="pt-3 border-top border-secondary">
+        <div class="d-flex align-items-center mb-3 text-white">
+            <div class="bg-success p-1 rounded-circle me-2" style="width:8px; height:8px; box-shadow: 0 0 10px #198754;"></div>
+            <span id="userName" class="small fw-bold">...</span>
+        </div>
+        <button id="btnSair" class="btn btn-sm btn-outline-danger w-100">Sair do Painel</button>
+    </div>
+</div>
+
+<div class="main-content">
+    <div class="tab-content" id="v-pills-tabContent">
+        
+        <div class="tab-pane fade show active" id="content-dash" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="fw-bold m-0">Visão Geral do Negócio</h4>
+                <button id="btnExportar" class="btn btn-success btn-sm fw-bold shadow-sm">
+                    <i class="bi bi-file-earmark-excel me-1"></i> Exportar Inventário
+                </button>
+            </div>
+            
+            <div class="row g-4 mb-4">
+                <div class="col-md-4"><div class="stat-card"><div class="icon-box bg-light text-warning"><i class="bi bi-box-seam"></i></div><h3 id="stat-total-joias" class="fw-bold">0</h3><p class="text-muted small mb-0">Total de Joias</p></div></div>
+                <div class="col-md-4"><div class="stat-card"><div class="icon-box bg-light text-success"><i class="bi bi-currency-euro"></i></div><h3 id="stat-valor-stock" class="fw-bold">€0</h3><p class="text-muted small mb-0">Valor Total do Stock</p></div></div>
+                <div class="col-md-4"><div class="stat-card"><div class="icon-box bg-light text-primary"><i class="bi bi-person-badge"></i></div><h3 id="stat-total-staff" class="fw-bold">0</h3><p class="text-muted small mb-0">Utilizadores Staff</p></div></div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-7">
+                    <div class="card-custom h-100">
+                        <h6 class="fw-bold mb-4">Stock por Categoria</h6>
+                        <canvas id="chartCategorias" style="max-height: 280px;"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div class="card-custom h-100">
+                        <h6 class="fw-bold mb-3">Auditoria de Atividade</h6>
+                        <div id="listaLogs" style="max-height: 280px; overflow-y: auto;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="content-inventario" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="fw-bold m-0">Catálogo de Luxo</h4>
+                <button class="btn btn-warning btn-sm fw-bold" onclick="limparFormulario()"><i class="bi bi-plus-lg me-1"></i>Novo Produto</button>
+            </div>
+
+            <div class="card-custom border-start border-warning border-4">
+                <input type="hidden" id="edit-id">
+                <div class="row g-3">
+                    <div class="col-md-4"><label class="small fw-bold">Nome da Joia</label><input type="text" id="nome" class="form-control" placeholder="Ex: Anel de Safira Real"></div>
+                    <div class="col-md-3"><label class="small fw-bold">Categoria</label>
+                        <select id="categoria" class="form-select">
+                            <option value="Aneis">Anéis</option>
+                            <option value="Colares">Colares</option>
+                            <option value="Brincos">Brincos</option>
+                            <option value="Pulseiras">Pulseiras</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2"><label class="small fw-bold">Peso (ct)</label><input type="number" id="peso" class="form-control" placeholder="0.00"></div>
+                    <div class="col-md-3"><label class="small fw-bold">Foto Base (URL)</label><input type="text" id="imagemBase" class="form-control"></div>
+                    
+                    <div class="col-md-4"><div class="variant-input-group"><label class="small fw-bold text-dark">Variante: Anel</label><div class="input-group input-group-sm mb-2"><span class="input-group-text">€</span><input type="number" id="precoAnel" class="form-control" placeholder="Preço"></div><input type="text" id="imgAnel" class="form-control form-control-sm" placeholder="URL da Foto Variante"></div></div>
+                    <div class="col-md-4"><div class="variant-input-group"><label class="small fw-bold text-dark">Variante: Colar</label><div class="input-group input-group-sm mb-2"><span class="input-group-text">€</span><input type="number" id="precoColar" class="form-control" placeholder="Preço"></div><input type="text" id="imgColar" class="form-control form-control-sm" placeholder="URL da Foto Variante"></div></div>
+                    <div class="col-md-4"><div class="variant-input-group"><label class="small fw-bold text-dark">Variante: Brincos</label><div class="input-group input-group-sm mb-2"><span class="input-group-text">€</span><input type="number" id="precoBrinco" class="form-control" placeholder="Preço"></div><input type="text" id="imgBrinco" class="form-control form-control-sm" placeholder="URL da Foto Variante"></div></div>
+
+                    <div class="col-12 mt-4"><button id="btnSalvar" class="btn btn-dark w-100 py-3 fw-bold text-uppercase" style="letter-spacing:1px;">Guardar no Sistema</button></div>
+                </div>
+            </div>
+
+            <div class="card-custom p-0 overflow-hidden">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light text-muted small uppercase">
+                            <tr><th class="ps-4">Item</th><th>Produto</th><th>Peso</th><th>Preços Base</th><th class="text-end pe-4">Ações</th></tr>
+                        </thead>
+                        <tbody id="tabelaItens"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="content-equipa" role="tabpanel">
+            <h4 class="fw-bold mb-4">Gestão de Staff & Acessos</h4>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card-custom border-top border-dark border-4">
+                        <h6 id="staffFormTitle" class="fw-bold mb-4 text-uppercase small">Novo Membro</h6>
+                        <input type="hidden" id="edit-user-id">
+                        
+                        <div class="mb-3"><label class="small fw-bold">Nome Profissional</label><input type="text" id="userNome" class="form-control"></div>
+                        <div class="mb-3"><label class="small fw-bold">E-mail Institucional</label><input type="email" id="userEmail" class="form-control"></div>
+                        
+                        <div id="wrapperSenha" class="mb-3">
+                            <label class="small fw-bold">Senha de Acesso</label>
+                            <input type="password" id="userSenha" class="form-control">
+                            <small class="text-muted" style="font-size: 0.7rem;">Mínimo 6 caracteres.</small>
+                        </div>
+
+                        <div class="mb-4"><label class="small fw-bold">Nível de Permissão</label>
+                            <select id="userRole" class="form-select">
+                                <option value="funcionario">Funcionário (Stock Only)</option>
+                                <option value="admin">Administrador (Full Access)</option>
+                            </select>
+                        </div>
+                        
+                        <button id="btnCriarUser" class="btn btn-dark w-100 fw-bold">SALVAR UTILIZADOR</button>
+                        <button id="btnCancelarEditUser" class="btn btn-sm btn-link w-100 text-secondary d-none mt-2" onclick="cancelarEdicaoUser()">Cancelar Edição</button>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card-custom">
+                        <h6 class="fw-bold mb-3 text-uppercase small">Membros Ativos</h6>
+                        <div id="listaEquipa" class="list-group list-group-flush"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, getDoc, getDocs, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    const firebaseConfig = { 
+        apiKey: "AIzaSyBwpLBa-3m3s7Ft7edmPZiAVg1nUSAOObI",
+        authDomain: "pap-ri.firebaseapp.com",
+        projectId: "pap-ri",
+        storageBucket: "pap-ri.firebasestorage.app",
+        messagingSenderId: "533502917027",
+        appId: "1:533502917027:web:a58589d8e28ea1c45d8216"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    let meuGrafico = null;
+
+    // --- FUNÇÕES DE LOG ---
+    async function registrarLog(msg) {
+        const user = document.getElementById("userName").innerText || "Sistema";
+        await addDoc(collection(db, "logs"), { usuario: user, acao: msg, data: new Date() });
+    }
+
+    // --- DASHBOARD GRÁFICOS ---
+    function atualizarGrafico(dados) {
+        const ctx = document.getElementById('chartCategorias').getContext('2d');
+        const cats = {};
+        dados.forEach(i => cats[i.categoria] = (cats[i.categoria] || 0) + 1);
+        
+        if (meuGrafico) meuGrafico.destroy();
+        meuGrafico = new Chart(ctx, {
+            type: 'doughnut',
+            data: { 
+                labels: Object.keys(cats), 
+                datasets: [{ 
+                    data: Object.values(cats), 
+                    backgroundColor: ['#d4af37', '#2c3e50', '#7f8c8d', '#34495e'],
+                    borderWidth: 0
+                }] 
+            },
+            options: { 
+                plugins: { legend: { position: 'bottom', labels: { usePointStyle: true } } },
+                cutout: '75%',
+                responsive: true
+            }
+        });
+    }
+
+    // --- EXPORTAÇÃO EXCEL ---
+    document.getElementById("btnExportar").onclick = async () => {
+        try {
+            const snap = await getDocs(collection(db, "joias"));
+            const dados = snap.docs.map(d => ({
+                Nome: d.data().nome,
+                Categoria: d.data().categoria,
+                Peso: d.data().peso,
+                Preco_Anel: d.data().precoAnel,
+                Preco_Colar: d.data().precoColar,
+                Preco_Brincos: d.data().precoBrinco
+            }));
+            const ws = XLSX.utils.json_to_sheet(dados);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Inventario_Luxo");
+            XLSX.writeFile(wb, "Relatorio_Stock_Acium.xlsx");
+            registrarLog("Gerou e exportou relatório de stock");
+        } catch (e) { alert("Erro ao exportar: " + e.message); }
+    };
+
+    // --- SEGURANÇA E AUTH ---
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            const userDoc = await getDoc(doc(db, "usuarios", user.uid));
+            if (userDoc.exists()) {
+                const uData = userDoc.data();
+                document.getElementById("userName").innerText = uData.nome;
+                
+                // Se for funcionário, oculta gestão de staff
+                if (uData.role === "funcionario") {
+                    document.getElementById("tab-equipa-btn").style.display = "none";
+                    document.getElementById("content-equipa").innerHTML = ""; 
+                }
+                document.getElementById("loadingOverlay").style.display = "none";
+            } else { window.location.href = "index.html"; }
+        } else { window.location.href = "index.html"; }
+    });
+
+    // --- GESTÃO DE STAFF ---
+    onSnapshot(collection(db, "usuarios"), snap => {
+        const lista = document.getElementById("listaEquipa");
+        if(!lista) return;
+        lista.innerHTML = "";
+        let count = 0;
+        snap.forEach(docSnap => {
+            const u = docSnap.data(); count++;
+            lista.innerHTML += `
+            <div class="list-group-item d-flex justify-content-between align-items-center border-0 border-bottom py-3">
+                <div class="d-flex align-items-center">
+                    <div class="bg-light rounded-circle p-2 me-3"><i class="bi bi-person text-secondary"></i></div>
+                    <div><b>${u.nome}</b><br><small class="text-muted">${u.email}</small></div>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="badge ${u.role === 'admin' ? 'bg-dark' : 'bg-secondary'} rounded-pill small">${u.role}</span>
+                    <button class="btn btn-sm btn-outline-dark" onclick="prepararEdicaoUser('${docSnap.id}')"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="excluirUsuario('${docSnap.id}', '${u.nome}')"><i class="bi bi-trash"></i></button>
+                </div>
+            </div>`;
+        });
+        document.getElementById("stat-total-staff").innerText = count;
+    });
+
+    window.prepararEdicaoUser = async (uid) => {
+        const userSnap = await getDoc(doc(db, "usuarios", uid));
+        if (userSnap.exists()) {
+            const u = userSnap.data();
+            document.getElementById("edit-user-id").value = uid;
+            document.getElementById("userNome").value = u.nome;
+            document.getElementById("userEmail").value = u.email;
+            document.getElementById("userRole").value = u.role;
+            document.getElementById("wrapperSenha").style.display = "none";
+            document.getElementById("staffFormTitle").innerText = "Editar Membro";
+            document.getElementById("btnCancelarEditUser").classList.remove("d-none");
+        }
+    };
+
+    window.cancelarEdicaoUser = () => {
+        document.getElementById("edit-user-id").value = "";
+        document.getElementById("userNome").value = "";
+        document.getElementById("userEmail").value = "";
+        document.getElementById("wrapperSenha").style.display = "block";
+        document.getElementById("staffFormTitle").innerText = "Novo Membro";
+        document.getElementById("btnCancelarEditUser").classList.add("d-none");
+    };
+
+    document.getElementById("btnCriarUser").onclick = async () => {
+        const uid = document.getElementById("edit-user-id").value;
+        const nome = document.getElementById("userNome").value;
+        const email = document.getElementById("userEmail").value;
+        const role = document.getElementById("userRole").value;
+
+        try {
+            if (uid) {
+                await updateDoc(doc(db, "usuarios", uid), { nome, email, role });
+                registrarLog(`Atualizou permissões de: ${nome}`);
+                alert("Staff atualizado!");
+            } else {
+                const senha = document.getElementById("userSenha").value;
+                if (senha.length < 6) return alert("Senha muito curta!");
+                const res = await createUserWithEmailAndPassword(auth, email, senha);
+                await setDoc(doc(db, "usuarios", res.user.uid), { nome, email, role });
+                registrarLog(`Criou novo acesso staff: ${nome}`);
+                alert("Novo membro adicionado!");
+            }
+            cancelarEdicaoUser();
+        } catch (e) { alert(e.message); }
+    };
+
+    window.excluirUsuario = async (uid, nome) => {
+        if (uid === auth.currentUser.uid) return alert("Operação proibida: Não pode apagar a sua própria conta.");
+        if(confirm(`Revogar permanentemente o acesso de ${nome}?`)) { 
+            await deleteDoc(doc(db, "usuarios", uid)); 
+            registrarLog(`Removeu membro do staff: ${nome}`); 
+        } 
+    };
+
+    // --- GESTÃO DE INVENTÁRIO ---
+    document.getElementById("btnSalvar").onclick = async () => {
+        const id = document.getElementById("edit-id").value;
+        const item = {
+            nome: document.getElementById("nome").value,
+            categoria: document.getElementById("categoria").value,
+            peso: document.getElementById("peso").value + " ct",
+            imagem: document.getElementById("imagemBase").value,
+            precoAnel: parseFloat(document.getElementById("precoAnel").value) || 0,
+            imgAnel: document.getElementById("imgAnel").value,
+            precoColar: parseFloat(document.getElementById("precoColar").value) || 0,
+            imgColar: document.getElementById("imgColar").value,
+            precoBrinco: parseFloat(document.getElementById("precoBrinco").value) || 0,
+            imgBrinco: document.getElementById("imgBrinco").value,
+            ultimaEdicao: new Date()
+        };
+        
+        if(!item.nome || !item.imagem) return alert("Preencha o nome e a foto base!");
+
+        try {
+            if (id) { 
+                await updateDoc(doc(db, "joias", id), item); 
+                registrarLog(`Editou joia: ${item.nome}`);
+            } else { 
+                await addDoc(collection(db, "joias"), item); 
+                registrarLog(`Adicionou nova joia: ${item.nome}`);
+            }
+            limparFormulario();
+            alert("Base de dados atualizada!");
+        } catch (e) { alert(e.message); }
+    };
+
+    onSnapshot(collection(db, "joias"), snap => {
+        const tabela = document.getElementById("tabelaItens");
+        if(!tabela) return;
+        tabela.innerHTML = "";
+        let valorTotal = 0; let totalJoias = 0;
+        const dadosJoias = [];
+
+        snap.forEach(docSnap => {
+            const d = docSnap.data();
+            totalJoias++; 
+            valorTotal += (d.precoAnel + d.precoColar + d.precoBrinco);
+            dadosJoias.push(d);
+
+            tabela.innerHTML += `
+            <tr>
+                <td class="ps-4"><img src="${d.imagem}" style="width:50px; height:50px; border-radius:8px; object-fit:cover;"></td>
+                <td><span class="fw-bold d-block">${d.nome}</span><small class="text-muted">${d.categoria}</small></td>
+                <td><span class="badge bg-light text-dark">${d.peso}</span></td>
+                <td><small class="text-muted">A: €${d.precoAnel} | C: €${d.precoColar} | B: €${d.precoBrinco}</small></td>
+                <td class="text-end pe-4">
+                    <button class="btn btn-sm btn-outline-dark" onclick="prepararEdicao('${docSnap.id}')"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-outline-danger ms-1" onclick="excluirItem('${docSnap.id}', '${d.nome}')"><i class="bi bi-trash"></i></button>
+                </td>
+            </tr>`;
+        });
+        document.getElementById("stat-total-joias").innerText = totalJoias;
+        document.getElementById("stat-valor-stock").innerText = "€" + valorTotal.toLocaleString();
+        atualizarGrafico(dadosJoias);
+    });
+
+    // --- LOGS / AUDITORIA ---
+    onSnapshot(collection(db, "logs"), snap => {
+        const lista = document.getElementById("listaLogs");
+        if(!lista) return;
+        const logs = snap.docs.map(d => d.data()).sort((a,b) => b.data.seconds - a.data.seconds).slice(0, 10);
+        lista.innerHTML = logs.map(l => `
+            <div class="log-item">
+                <b>${l.usuario}</b> ${l.acao}
+                <div class="opacity-50 text-end" style="font-size:0.7rem">${l.data.toDate().toLocaleString()}</div>
+            </div>
+        `).join("");
+    });
+
+    window.prepararEdicao = async (id) => {
+        const d = await getDoc(doc(db, "joias", id));
+        const data = d.data();
+        document.getElementById("edit-id").value = id;
+        document.getElementById("nome").value = data.nome;
+        document.getElementById("categoria").value = data.categoria;
+        document.getElementById("peso").value = data.peso.replace(" ct", "");
+        document.getElementById("imagemBase").value = data.imagem;
+        document.getElementById("precoAnel").value = data.precoAnel;
+        document.getElementById("imgAnel").value = data.imgAnel || "";
+        document.getElementById("precoColar").value = data.precoColar;
+        document.getElementById("imgColar").value = data.imgColar || "";
+        document.getElementById("precoBrinco").value = data.precoBrinco;
+        document.getElementById("imgBrinco").value = data.imgBrinco || "";
+        document.getElementById("btnSalvar").innerText = "ATUALIZAR DADOS";
+        document.getElementById("tab-inventario-btn").click();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.excluirItem = async (id, nome) => { 
+        if(confirm(`Tem certeza que deseja apagar ${nome}? Esta ação não pode ser desfeita.`)) { 
+            await deleteDoc(doc(db, "joias", id)); 
+            registrarLog(`Eliminou joia do inventário: ${nome}`); 
+        } 
+    };
+    
+    window.limparFormulario = () => {
+        document.getElementById("edit-id").value = "";
+        document.querySelectorAll('#content-inventario input').forEach(i => i.value = "");
+        document.getElementById("btnSalvar").innerText = "GUARDAR NO SISTEMA";
+    };
+
+    document.getElementById("btnSair").onclick = () => signOut(auth).then(() => window.location.href = "index.html");
+</script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro | ACIUM Luxury</title>
+    <link rel="icon" type="image/png" href="img/icon.png">
+    <link rel="stylesheet" href="css/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <style>
+        :root { 
+            --gold: #d4af37; 
+            --dark-bg: #121212;
+            --card-bg: #1e1e1e;
+        }
+
+        body { 
+            background: var(--dark-bg); 
+            color: white; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+        }
+
+        .card-cadastro { 
+            background: var(--card-bg); 
+            border: 1px solid rgba(212, 175, 55, 0.3); 
+            padding: 40px; 
+            border-radius: 20px; 
+            width: 100%; 
+            max-width: 400px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .brand-logo {
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .form-control { 
+            background: #2a2a2a; 
+            border: 1px solid #333; 
+            color: white; 
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .form-control:focus {
+            background: #333;
+            border-color: var(--gold);
+            color: white;
+            box-shadow: none;
+        }
+
+        .btn-gold { 
+            background: linear-gradient(135deg, #d4af37, #b8962e); 
+            color: white; 
+            border: none; 
+            font-weight: bold; 
+            padding: 12px;
+            border-radius: 10px;
+            transition: 0.3s;
+        }
+
+        .btn-gold:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+            color: white;
+        }
+
+        a { text-decoration: none; transition: 0.3s; }
+        a:hover { color: #fff !important; }
+    </style>
+</head>
+<body>
+
+<div class="card-cadastro">
+    <div class="brand-logo">
+        <h4 class="m-0"><span style="color:var(--gold)">ACIUM</span> LUXURY</h4>
+        <small class="text-muted text-uppercase" style="font-size: 10px;">Membro Exclusivo</small>
+    </div>
+
+    <h5 class="text-center mb-4">Criar sua conta</h5>
+    
+    <div id="formCadastro">
+        <input type="text" id="nome" placeholder="Nome Completo" class="form-control">
+        <input type="email" id="email" placeholder="E-mail" class="form-control">
+        <input type="password" id="pass" placeholder="Senha (mín. 6 caracteres)" class="form-control">
+        
+        <button id="btnRegistrar" class="btn btn-gold w-100 mt-2">
+            CADASTRAR AGORA
+        </button>
+    </div>
+
+    <p class="mt-4 text-center small text-muted">
+        Já possui uma conta? <a href="index.html" class="text-warning fw-bold">Entrar</a>
+    </p>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBwpLBa-3m3s7Ft7edmPZiAVg1nUSAOObI",
+        authDomain: "pap-ri.firebaseapp.com",
+        projectId: "pap-ri",
+        storageBucket: "pap-ri.firebasestorage.app",
+        messagingSenderId: "533502917027",
+        appId: "1:533502917027:web:a58589d8e28ea1c45d8216"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    document.getElementById("btnRegistrar").addEventListener("click", async () => {
+        const nome = document.getElementById("nome").value.trim();
+        const email = document.getElementById("email").value.trim();
+        const pass = document.getElementById("pass").value;
+
+        if(!nome || !email || !pass) {
+            alert("Por favor, preencha todos os campos.");
+            return;
+        }
+
+        try {
+            const cred = await createUserWithEmailAndPassword(auth, email, pass);
+            
+            // Salva o perfil do utilizador no Firestore
+            await setDoc(doc(db, "usuarios", cred.user.uid), {
+                nome: nome,
+                email: email,
+                role: "cliente",
+                dataCadastro: new Date().toISOString()
+            });
+
+            alert("Bem-vindo à ACIUM Luxury! Conta criada com sucesso.");
+            window.location.href = "index.html";
+        } catch (e) {
+            let msg = "Erro ao cadastrar.";
+            if(e.code === 'auth/email-already-in-use') msg = "Este e-mail já está em uso.";
+            if(e.code === 'auth/weak-password') msg = "A senha deve ter pelo menos 6 caracteres.";
+            
+            alert(msg + " (" + e.message + ")");
+        }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finalizar Compra | ACIUM Luxury</title>
+    <link rel="icon" type="image/png" href="img/icon.png">
+    <link rel="stylesheet" href="css/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root { 
+            --gold: #d4af37; 
+            --gold-hover: #b8962e;
+            --dark: #1a1a1a; 
+            --light-bg: #f8f9fa;
+            --text-main: #212529; 
+            --bg-card: #ffffff;
+            --border: #dee2e6;
+        }
+
+        [data-theme="dark"] { 
+            --light-bg: #121212;
+            --text-main: #f8f9fa; 
+            --bg-card: #1e1e1e;
+            --dark: #000000;
+            --border: #333333;
+        }
+
+        body { background-color: var(--light-bg); color: var(--text-main); transition: 0.3s; font-family: 'Inter', sans-serif; }
+        .navbar-luxury { background: var(--dark); border-bottom: 3px solid var(--gold); }
+        
+        .card-luxury { 
+            background-color: var(--bg-card) !important; 
+            border: 1px solid var(--border) !important; 
+            border-radius: 15px; 
+            overflow: hidden;
+        }
+
+        .resumo-card { 
+            border-left: 5px solid var(--gold) !important; 
+            background-color: var(--bg-card) !important;
+        }
+
+        .payment-option {
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .payment-option:hover { border-color: var(--gold); background: rgba(212, 175, 55, 0.05); }
+        .payment-option.active { border-color: var(--gold); background: rgba(212, 175, 55, 0.1); }
+        .payment-option i { font-size: 1.5rem; color: var(--gold); }
+
+        .btn-gold { background: var(--gold); color: white; border: none; font-weight: bold; transition: 0.3s; }
+        .btn-gold:hover { background: var(--gold-hover); color: white; transform: translateY(-2px); }
+
+        .item-img { width: 70px; height: 70px; object-fit: cover; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-luxury px-4 py-3 d-flex justify-content-between align-items-center">
+    <h4 class="text-white m-0" style="cursor:pointer" onclick="location.href='index.html'"><span style="color:var(--gold)">ACIUM</span> LUXURY</h4>
+    
+    <div class="d-flex align-items-center">
+        <div id="authSection" class="me-3"></div>
+        <button id="langBtn" onclick="toggleLanguageCarrinho()" class="btn btn-outline-light btn-sm me-2">EN</button>
+        <button id="themeBtn" onclick="toggleTheme()" class="btn btn-outline-warning btn-sm">
+            <i class="bi bi-moon-stars"></i>
+        </button>
+    </div>
+</nav>
+
+<div class="container py-5">
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <h2 class="mb-4 fw-bold" id="titleCart">O Seu Carrinho Luxo</h2>
+            
+            <div id="listaCarrinho" class="card-luxury p-4 shadow-sm mb-4">
+                </div>
+
+            <h4 class="mb-3 fw-bold" id="titlePayment">Método de Pagamento</h4>
+            <div class="card-luxury p-4 shadow-sm mb-4">
+                <div class="payment-option active" onclick="selectPayment(this, 'card')">
+                    <i class="bi bi-credit-card"></i>
+                    <div>
+                        <strong class="d-block">Cartão de Crédito / Débito</strong>
+                        <small class="text-muted">Visa, Mastercard, American Express</small>
+                    </div>
+                </div>
+                <div class="payment-option" onclick="selectPayment(this, 'mbway')">
+                    <i class="bi bi-phone"></i>
+                    <div>
+                        <strong class="d-block">MB WAY</strong>
+                        <small class="text-muted">Pagamento imediato via telemóvel</small>
+                    </div>
+                </div>
+                <div class="payment-option" onclick="selectPayment(this, 'multibanco')">
+                    <i class="bi bi-bank"></i>
+                    <div>
+                        <strong class="d-block">Referência Multibanco</strong>
+                        <small class="text-muted">Pagamento em caixas ATM ou Homebanking</small>
+                    </div>
+                </div>
+            </div>
+
+            <a href="index.html" id="btnVoltar" class="btn btn-link text-decoration-none text-muted">
+                <i class="bi bi-arrow-left"></i> Continuar Comprando
+            </a>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card card-luxury resumo-card p-4 shadow-sm position-sticky" style="top: 20px;">
+                <h4 class="fw-bold mb-4" id="titleSummary">Resumo do Pedido</h4>
+                <div class="d-flex justify-content-between mb-2">
+                    <span id="txtSubtotal">Subtotal:</span>
+                    <span class="fw-bold">€ <span id="subtotal">0.00</span></span>
+                </div>
+                <div class="d-flex justify-content-between text-muted mb-2">
+                    <span id="txtIva">IVA (23%):</span>
+                    <span>€ <span id="iva">0.00</span></span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between fw-bold fs-4 mb-4">
+                    <span id="txtTotal">Total:</span>
+                    <span style="color: var(--gold)">€ <span id="total">0.00</span></span>
+                </div>
+                <button id="btnFinalizar" onclick="finalizarCompraFinal()" class="btn btn-gold w-100 py-3 rounded-pill shadow">
+                    FINALIZAR PEDIDO
+                </button>
+                <p class="text-center text-muted small mt-3">
+                    <i class="bi bi-shield-lock"></i> Pagamento 100% Seguro
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBwpLBa-3m3s7Ft7edmPZiAVg1nUSAOObI",
+        authDomain: "pap-ri.firebaseapp.com",
+        projectId: "pap-ri",
+        storageBucket: "pap-ri.firebasestorage.app",
+        messagingSenderId: "533502917027",
+        appId: "1:533502917027:web:a58589d8e28ea1c45d8216"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let carrinho = JSON.parse(localStorage.getItem("carrinhoLuxury")) || [];
+    let currentLang = localStorage.getItem('lang') || 'pt';
+    let paymentMethod = 'card';
+
+    const translations = {
+        pt: {
+            saudacao: "Olá,", sair: "Sair", titulo: "O Seu Carrinho Luxo",
+            vazio: "O seu carrinho está vazio.", resumo: "Resumo do Pedido",
+            subtotal: "Subtotal:", totalLabel: "Total:", btnFinalizar: "FINALIZAR PEDIDO",
+            btnVoltar: "Explorar Coleções", remover: "Remover", iva: "Taxa (IVA 23%):",
+            pagamento: "Método de Pagamento", sucesso: "Joias Adquiridas com Sucesso!",
+            msgPDF: "Gerando certificado de compra..."
+        },
+        en: {
+            saudacao: "Hello,", sair: "Logout", titulo: "Your Luxury Cart",
+            vazio: "Your cart is empty.", resumo: "Order Summary",
+            subtotal: "Subtotal:", totalLabel: "Total:", btnFinalizar: "PLACE ORDER",
+            btnVoltar: "Explore Collections", remover: "Remove", iva: "VAT (23%):",
+            pagamento: "Payment Method", sucesso: "Order Placed Successfully!",
+            msgPDF: "Generating purchase certificate..."
+        }
+    };
+
+    window.selectPayment = (el, method) => {
+        document.querySelectorAll('.payment-option').forEach(opt => opt.classList.remove('active'));
+        el.classList.add('active');
+        paymentMethod = method;
+    };
+
+    function renderCarrinho() {
+        const container = document.getElementById("listaCarrinho");
+        if (carrinho.length === 0) {
+            container.innerHTML = `<div class="text-center py-5">
+                <i class="bi bi-bag-x fs-1 text-muted"></i>
+                <p class="mt-3">${translations[currentLang].vazio}</p>
+            </div>`;
+            atualizarPrecos(0);
+            return;
+        }
+
+        let subtotal = 0;
+        container.innerHTML = carrinho.map((item, index) => {
+            subtotal += item.preco * item.qtd;
+            return `
+                <div class="d-flex align-items-center justify-content-between border-bottom py-3">
+                    <div class="d-flex align-items-center">
+                        <img src="${item.imagem}" class="item-img me-3">
+                        <div>
+                            <h6 class="mb-0 fw-bold">${item.nome}</h6>
+                            <small class="text-muted">€${item.preco.toLocaleString()} x ${item.qtd}</small>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <span class="d-block fw-bold mb-2">€${(item.preco * item.qtd).toLocaleString()}</span>
+                        <button class="btn btn-sm btn-link text-danger p-0 text-decoration-none" onclick="removerItem(${index})">
+                            <i class="bi bi-trash"></i> ${translations[currentLang].remover}
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join("");
+        atualizarPrecos(subtotal);
+    }
+
+    function atualizarPrecos(subtotal) {
+        const valorIva = subtotal * 0.23;
+        const total = subtotal + valorIva;
+        document.getElementById("subtotal").innerText = subtotal.toFixed(2);
+        document.getElementById("iva").innerText = valorIva.toFixed(2);
+        document.getElementById("total").innerText = total.toFixed(2);
+    }
+
+    window.removerItem = (i) => {
+        carrinho.splice(i, 1);
+        localStorage.setItem("carrinhoLuxury", JSON.stringify(carrinho));
+        renderCarrinho();
+    };
+
+    window.finalizarCompraFinal = () => {
+        if (carrinho.length === 0) {
+            alert(currentLang === 'pt' ? "Adicione uma joia antes de finalizar!" : "Add a jewel before checkout!");
+            return;
+        }
+        gerarReciboPDF();
+        localStorage.removeItem("carrinhoLuxury");
+        alert(translations[currentLang].sucesso);
+        window.location.href = "index.html";
+    };
+
+    function gerarReciboPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const dataAtual = new Date().toLocaleString();
+        const nomeUsuario = document.getElementById("authSection")?.innerText.split(",")[1]?.trim().split(" ")[0] || "Cliente";
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(22);
+        doc.setTextColor(212, 175, 55); 
+        doc.text("ACIUM LUXURY", 105, 20, { align: "center" });
+
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text("CERTIFICADO DE ADQUISIÇÃO DE JOALHARIA", 105, 30, { align: "center" });
+        doc.line(20, 35, 190, 35);
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(12);
+        doc.setTextColor(40, 40, 40);
+        doc.text(`Data: ${dataAtual}`, 20, 45);
+        doc.text(`Proprietário: ${nomeUsuario}`, 20, 52);
+        doc.text(`Método: ${paymentMethod.toUpperCase()}`, 20, 59);
+
+        doc.setFont("helvetica", "bold");
+        doc.text("Joia", 20, 75);
+        doc.text("Qtd", 130, 75);
+        doc.text("V. Unitário", 150, 75);
+        doc.text("Total", 175, 75);
+        doc.line(20, 77, 190, 77);
+
+        let y = 85;
+        doc.setFont("helvetica", "normal");
+        carrinho.forEach((item) => {
+            doc.text(item.nome.substring(0, 30), 20, y);
+            doc.text(item.qtd.toString(), 130, y);
+            doc.text(`€${item.preco.toFixed(2)}`, 150, y);
+            doc.text(`€${(item.preco * item.qtd).toFixed(2)}`, 175, y);
+            y += 10;
+        });
+
+        doc.line(20, y, 190, y);
+        y += 10;
+        const totalFinal = document.getElementById("total").innerText;
+        const ivaFinal = document.getElementById("iva").innerText;
+
+        doc.setFont("helvetica", "bold");
+        doc.text(`IVA (23%): €${ivaFinal}`, 190, y, { align: "right" });
+        y += 10;
+        doc.setFontSize(14);
+        doc.setTextColor(212, 175, 55);
+        doc.text(`MONTANTE TOTAL: €${totalFinal}`, 190, y, { align: "right" });
+
+        const pdfUrl = doc.output('bloburl');
+        window.open(pdfUrl, '_blank');
+    }
+
+    window.toggleTheme = () => {
+        const html = document.documentElement;
+        const isDark = html.getAttribute('data-theme') === 'dark';
+        const newTheme = isDark ? 'light' : 'dark';
+        html.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        document.getElementById('themeBtn').innerHTML = newTheme === 'dark' ? '<i class="bi bi-sun"></i>' : '<i class="bi bi-moon-stars"></i>';
+    };
+
+    window.toggleLanguageCarrinho = () => {
+        currentLang = currentLang === 'pt' ? 'en' : 'pt';
+        localStorage.setItem('lang', currentLang);
+        aplicarTextos();
+    };
+
+    function aplicarTextos() {
+        document.getElementById('langBtn').innerText = currentLang === 'pt' ? 'EN' : 'PT';
+        document.getElementById('titleCart').innerText = translations[currentLang].titulo;
+        document.getElementById('titlePayment').innerText = translations[currentLang].pagamento;
+        document.getElementById('titleSummary').innerText = translations[currentLang].resumo;
+        document.getElementById('btnFinalizar').innerText = translations[currentLang].btnFinalizar;
+        document.getElementById('btnVoltar').innerHTML = `<i class="bi bi-arrow-left"></i> ${translations[currentLang].btnVoltar}`;
+        document.getElementById('txtSubtotal').innerText = translations[currentLang].subtotal;
+        document.getElementById('txtIva').innerText = translations[currentLang].iva;
+        document.getElementById('txtTotal').innerText = translations[currentLang].totalLabel;
+        renderCarrinho();
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+        const authSection = document.getElementById("authSection");
+        if (user) {
+            const userSnap = await getDoc(doc(db, "usuarios", user.uid));
+            const nome = userSnap.exists() ? userSnap.data().nome.split(" ")[0] : "Cliente";
+            authSection.innerHTML = `
+                <span class="text-white me-2 small">${translations[currentLang].saudacao} <b style="color:var(--gold)">${nome}</b></span>
+                <button id="btnLogout" class="btn btn-outline-danger btn-sm">${translations[currentLang].sair}</button>
+            `;
+            document.getElementById("btnLogout").onclick = () => signOut(auth).then(() => location.reload());
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        document.getElementById('themeBtn').innerHTML = savedTheme === 'dark' ? '<i class="bi bi-sun"></i>' : '<i class="bi bi-moon-stars"></i>';
+        aplicarTextos();
+    });
+</script>
+</body>
+</html>
